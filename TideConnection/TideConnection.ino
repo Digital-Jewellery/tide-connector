@@ -1,17 +1,27 @@
+
+
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
+#include <DNSServer.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
 #include <ESP8266HTTPClient.h>
+
 #include <ArduinoJson.h>
+#include <WiFiManager.h>
 
-const char* ssid = "Robert and Nantia";
-const char* password = "Thriller123";
+WiFiManager wifiManager;
 
-ESP8266WebServer server(80);
+const int redLED = 14;    //D4
+const int greenLED = 12;  //D6
+const int blueLED = 13;   //D7
+
+//If cathode led invert values
+const int maxLEDValue = 0;           
+const int minLEDValue = 1023;
 
 const int led1 = 12; //green
-const int led2 = 15; //red
+const int led2 = 14; //red
 const int led3 = 13; //blue
 
 const int tideMax = 315;
@@ -221,45 +231,36 @@ void tideTest()  {
 }
 
 void setup() {
-  
+
+  Serial.begin(9600);
+
   pinMode(led1, OUTPUT);
   pinMode(led2, OUTPUT);
   pinMode(led3, OUTPUT);
 
   randomSeed(analogRead(0));
 
-  Serial.begin(9600);
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-  Serial.println("");
+  writeColourToLED(maxLEDValue, maxLEDValue, minLEDValue);
 
-  // Wait for connection
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
+  if(!wifiManager.autoConnect("Tide Connector")) {
+    writeColourToLED(maxLEDValue, minLEDValue, minLEDValue);
+    delay(1000);
+    Serial.println("failed to connect and hit timeout");
+    ESP.reset();
+    delay(1000);
+  };
 
-  //If you connect with success to the internet the device will print its IP address with the Serial Monitor
-  Serial.println("");
-  Serial.print("Connected to ");
-  Serial.println(ssid);
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
-
-  if (MDNS.begin("esp8266")) {
-    Serial.println("MDNS responder started");
-  }
-
-
-  Serial.println("HTTP server started");
   startTideConnector();
 }
 
 void loop() {
+
+  /*
   server.handleClient();
   MDNS.update();
 
   updateTideConnector();
+  */
   //Run the online version
   //getTideLevel();
 
@@ -411,7 +412,7 @@ void dimTransition(int cRed, int cGreen, int cBlue, int tRed, int tGreen, int tB
 }
 
 void writeColourToLED(int red, int green, int blue) {
-  analogWrite(led2, red);
-  analogWrite(led1, green);
-  analogWrite(led3, blue);
+  analogWrite(redLED, red);
+  analogWrite(greenLED, green);
+  analogWrite(blueLED, blue);
 }
