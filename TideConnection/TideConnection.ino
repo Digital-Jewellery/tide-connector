@@ -22,8 +22,8 @@ const int led1 = 12; //green
 const int led2 = 14; //red
 const int led3 = 13; //blue
 
-const int tideMax = 315;
-const int tideMin = -223;
+int tideMax = 315;
+int tideMin = -223;
 
 double lastTideValue = 0;
 
@@ -42,6 +42,10 @@ const int lowTideMaxColorBlue = 0;
 const int lowTideMinColorRed = 0;
 const int lowTideMinColorGreen = 255;
 const int lowTideMinColorBlue = 0;
+
+const int highTideColour[3] = {minLEDValue, minLEDValue, maxLEDValue};
+const int zeroTideColour[3] = {minLEDValue, maxLEDValue, minLEDValue};
+const int lowTideColour[3] = {maxLEDValue, maxLEDValue, minLEDValue};
 
 int previousTideValue = 0;
 int currentTideValue = 315;
@@ -96,6 +100,10 @@ void loop() {
   //tideTest(); 
   
  //delay(10* 60 * 1000);
+
+  tideTest2();
+
+
 }
 
 void startTideConnector() {
@@ -106,6 +114,9 @@ void startTideConnector() {
     newTideValue = getTideLevel(tideLink);
     delay(1000);
   }
+
+  updateTideBoundries(newTideValue);
+
   int *colours = getTideColours(newTideValue);
   writeColourToLED(colours[0], colours[1], colours[2]);
 
@@ -163,25 +174,25 @@ int * getTideColours (int tideValue) {
   if(tideValue >= 0) {
 
     //Red
-    colours[0] = map(tideValue, 0, tideMax, highTideMinColorRed, highTideMaxColorRed);
+    colours[0] = map(tideValue, 0, tideMax, zeroTideColour[0], highTideColour[0]);
   
     //Green
-    colours[1] = map(tideValue, 0, tideMax, highTideMinColorGreen, highTideMaxColorGreen);
+    colours[1] = map(tideValue, 0, tideMax, zeroTideColour[1], highTideColour[1]);
   
     //Blue
-    colours[2] = map(tideValue, 0, tideMax, highTideMinColorBlue, highTideMaxColorBlue);
+    colours[2] = map(tideValue, 0, tideMax, zeroTideColour[2], highTideColour[2]);
  
 
   } else {
 
     //Red
-    colours[0] = map(tideValue, tideMin, 0, lowTideMaxColorRed, lowTideMinColorRed);
+    colours[0] = map(tideValue, tideMin, 0, lowTideColour[0], zeroTideColour[0]);
   
     //Green
-    colours[1] = map(tideValue, tideMin, 0, lowTideMaxColorGreen, lowTideMinColorGreen);
+    colours[1] = map(tideValue, tideMin, 0, lowTideColour[1], zeroTideColour[1]);
   
     //Blue
-    colours[2] = map(tideValue, tideMin, 0, lowTideMaxColorBlue, lowTideMinColorBlue);
+    colours[2] = map(tideValue, tideMin, 0, lowTideColour[2], zeroTideColour[2]);
  
   }
 
@@ -201,6 +212,18 @@ void setState(int newTideValue, int red, int green, int blue) {
   currentRed = red;
   currentGreen = green;
   currentBlue = blue;
+}
+
+void updateTideBoundries(int tideValue) {
+
+  if(tideValue == errorTide)
+    return;
+
+  if(tideValue < tideMin)
+    tideMin = tideValue;
+  else if(tideValue > tideMax)
+    tideMax = tideValue;
+
 }
 
 void applyCurrentTide(int tideValue) {
@@ -310,6 +333,24 @@ void applyCurrentTide(int tideValue) {
 
 }
 
+void tideTest2() {
+
+  for(int i = tideMin; i < tideMax; i++) {
+    Serial.println(i);
+    int *colours = getTideColours(i);
+    writeColourToLED(colours[0], colours[1], colours[2]);
+    delay(10);
+  }
+
+  for(int i = tideMax; i >= tideMin; i--) {
+    Serial.println(i);
+    int *colours = getTideColours(i);
+    writeColourToLED(colours[0], colours[1], colours[2]);
+    delay(10);
+  }
+
+}
+
 void tideTest()  {
 
   for(int i = tideMin; i < tideMax; i+=5) {
@@ -330,6 +371,9 @@ void updateTideConnector() {
       newTideValue = getTideLevel(tideLink);
       delay(1000);
     }
+
+    updateTideBoundries(newTideValue);
+
     int *colours = getTideColours(newTideValue);
    
     applyCurrentTide2(previousTideValue, newTideValue);
