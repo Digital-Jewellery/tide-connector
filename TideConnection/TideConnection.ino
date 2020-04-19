@@ -1,5 +1,3 @@
-
-
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 #include <DNSServer.h>
@@ -54,60 +52,155 @@ int currentBlue = 0;
 unsigned long lastUpdate = 0;
 int tideDirection = 0;
 int updateInterval = 1000 * 60 * 10;
-// Every time this is call this device will try to access another to turn it LED on or off
-void getTideLevel() {
-  if (WiFi.status() == WL_CONNECTED) {
 
-    WiFiClient client;
+char *tideLink = "http://environment.data.gov.uk/flood-monitoring/id/measures/E71039-level-tidal_level-Mean-15_min-mAOD/readings?_sorted&_limit=1";
+const int errorTide = -9999;
 
-    HTTPClient http;
+void setup() {
 
-    Serial.printf("[HTTP} !!!!!!!!!");
+  Serial.begin(9600);
 
-     //The device trying to access another on the link http://192.168.1.112//LED?ledState=1
-    if (http.begin(client, "http://environment.data.gov.uk/flood-monitoring/id/measures/E71039-level-tidal_level-Mean-15_min-mAOD/readings?_sorted&_limit=1")) {  // HTTP
+  pinMode(led1, OUTPUT);
+  pinMode(led2, OUTPUT);
+  pinMode(led3, OUTPUT);
 
-        Serial.printf("A");
-      // start connection and send HTTP header
-      int httpCode = http.GET();
+  randomSeed(analogRead(0));
 
-      // httpCode will be negative on error
-      if (httpCode > 0) {
-          Serial.printf("B");
-          Serial.println();
-         // String payload2 = http.getString();
-         // Serial.println(payload2);
+  writeColourToLED(maxLEDValue, maxLEDValue, minLEDValue);
 
+  if(!wifiManager.autoConnect("Tide Connector")) {
+    writeColourToLED(maxLEDValue, minLEDValue, minLEDValue);
+    delay(1000);
+    Serial.println("failed to connect and hit timeout");
+    ESP.reset();
+    delay(1000);
+  };
 
-        const size_t bufferSize = JSON_OBJECT_SIZE(2) + JSON_OBJECT_SIZE(3) + JSON_OBJECT_SIZE(5) + JSON_OBJECT_SIZE(8) + 370;
-         DynamicJsonBuffer jsonBuffer(bufferSize);
-          JsonObject& root = jsonBuffer.parseObject(http.getString());
+  writeColourToLED(minLEDValue, minLEDValue, minLEDValue);
 
-          if(!root.success()) {
-            Serial.println("parseObject() failed");
-          } else {
-            String currentValueTideString = root["items"][0]["value"];
-            double newCurrentValueTide = currentValueTideString.toDouble()*100;
-            //applyCurrentTide(currentValueTide);
-            previousTideValue = currentTideValue;
-            currentTideValue = newCurrentValueTide;
-            lastUpdate = millis(); // replacement for the delay function
-            Serial.print("currentTideValue: ");
-            Serial.print(currentTideValue);
-            Serial.println();
-          }
-    
-      } else {
-        Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
-             Serial.printf("C");
-      }
+  startTideConnector();
+}
 
-      http.end();
-    } else {
-      Serial.printf("[HTTP} Unable to connect\n");
-    }
+void loop() {
 
+  /*
+  server.handleClient();
+  MDNS.update();
+
+  updateTideConnector();
+  */
+  //Run the online version
+  //getTideLevel();
+
+  //Remove coment to run test
+  //tideTest(); 
+  
+ //delay(10* 60 * 1000);
+}
+
+void startTideConnector() {
+  int newTideValue = getTideLevel(tideLink);
+  //If there is a error, it keeps retrying
+  while(newTideValue == -9999) {
+    blink(minLEDValue, minLEDValue, minLEDValue, maxLEDValue, maxLEDValue, minLEDValue, 200);
+    newTideValue = getTideLevel(tideLink);
+    delay(1000);
   }
+  int *colours = getTideColours(newTideValue);
+  writeColourToLED(colours[0], colours[1], colours[2]);
+
+  setState(newTideValue, colours[0], colours[1], colours[2]);
+}
+
+/**
+ * Get the tide level from a given link
+ * */
+int getTideLevel(char * link) {
+
+  if(!WiFi.status() == WL_CONNECTED) {
+    Serial.println("Not Connect to the internet");
+    return errorTide;
+  }
+
+  WiFiClient client;
+  HTTPClient http;
+
+  if(!http.begin(client, link)) {
+    Serial.printf("[HTTP] Unable to connect\n");
+    return errorTide;
+  }
+
+  // start connection and send HTTP header
+  int httpCode = http.GET();
+
+  // httpCode will be negative on error
+  if(httpCode <= 0) {
+    Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
+    http.end();
+    return errorTide;
+  }
+
+  const size_t bufferSize = JSON_OBJECT_SIZE(2) + JSON_OBJECT_SIZE(3) + JSON_OBJECT_SIZE(5) + JSON_OBJECT_SIZE(8) + 370;
+  DynamicJsonBuffer jsonBuffer(bufferSize);
+  JsonObject& root = jsonBuffer.parseObject(http.getString());
+
+  if(!root.success()) {
+    Serial.println("parseObject() failed");
+    http.end();
+    return errorTide;
+  }
+
+  String currentValueTideString = root["items"][0]["value"];
+  double newCurrentValueTide = currentValueTideString.toDouble()*100;
+  http.end();
+  return newCurrentValueTide;
+}
+
+int * getTideColours (int tideValue) {
+
+  static int colours[3];
+
+  if(tideValue >= 0) {
+
+    //Red
+    colours[0] = map(tideValue, 0, tideMax, highTideMinColorRed, highTideMaxColorRed);
+  
+    //Green
+    colours[1] = map(tideValue, 0, tideMax, highTideMinColorGreen, highTideMaxColorGreen);
+  
+    //Blue
+    colours[2] = map(tideValue, 0, tideMax, highTideMinColorBlue, highTideMaxColorBlue);
+ 
+
+  } else {
+
+    //Red
+    colours[0] = map(tideValue, tideMin, 0, lowTideMaxColorRed, lowTideMinColorRed);
+  
+    //Green
+    colours[1] = map(tideValue, tideMin, 0, lowTideMaxColorGreen, lowTideMinColorGreen);
+  
+    //Blue
+    colours[2] = map(tideValue, tideMin, 0, lowTideMaxColorBlue, lowTideMinColorBlue);
+ 
+  }
+
+  return colours;
+}
+
+void writeColourToLED(int red, int green, int blue) {
+  analogWrite(redLED, red);
+  analogWrite(greenLED, green);
+  analogWrite(blueLED, blue);
+}
+
+void setState(int newTideValue, int red, int green, int blue) {
+  lastUpdate = millis();
+  previousTideValue = currentTideValue;
+  currentTideValue = newTideValue;
+  currentRed = red;
+  currentGreen = green;
+  currentBlue = blue;
 }
 
 void applyCurrentTide(int tideValue) {
@@ -230,60 +323,22 @@ void tideTest()  {
  }
 }
 
-void setup() {
-
-  Serial.begin(9600);
-
-  pinMode(led1, OUTPUT);
-  pinMode(led2, OUTPUT);
-  pinMode(led3, OUTPUT);
-
-  randomSeed(analogRead(0));
-
-  writeColourToLED(maxLEDValue, maxLEDValue, minLEDValue);
-
-  if(!wifiManager.autoConnect("Tide Connector")) {
-    writeColourToLED(maxLEDValue, minLEDValue, minLEDValue);
-    delay(1000);
-    Serial.println("failed to connect and hit timeout");
-    ESP.reset();
-    delay(1000);
-  };
-
-  startTideConnector();
-}
-
-void loop() {
-
-  /*
-  server.handleClient();
-  MDNS.update();
-
-  updateTideConnector();
-  */
-  //Run the online version
-  //getTideLevel();
-
-  //Remove coment to run test
-  //tideTest(); 
-  
- //delay(10* 60 * 1000);
-}
-
-void startTideConnector() {
-  getTideLevel();
-  int colours[3];
-  getTideColours(currentTideValue, colours);
-  currentRed = colours[0];
-  currentGreen = colours[1];
-  currentBlue = colours[2];
-  writeColourToLED(colours[0],colours[1], colours[2]);
-}
-
 void updateTideConnector() {
    if(millis()-lastUpdate >= updateInterval) {
-    getTideLevel();
-    applyCurrentTide2(previousTideValue, currentTideValue);
+    int newTideValue = getTideLevel(tideLink);
+    while(newTideValue == -9999) {
+      newTideValue = getTideLevel(tideLink);
+      delay(1000);
+    }
+    int *colours = getTideColours(newTideValue);
+   
+    applyCurrentTide2(previousTideValue, newTideValue);
+
+    setState(newTideValue, colours[0], colours[1], colours[2]);
+
+
+    //getTideLevel();
+    //applyCurrentTide2(previousTideValue, currentTideValue);
   }
 }
 
@@ -316,11 +371,9 @@ int getTideValue() {
 
 void applyCurrentTide2(int previousTideValue, int currentTideValue) {
 
-  int previousColours[3];
-  getTideColours(previousTideValue, previousColours);
+  int *previousColours = getTideColours(previousTideValue);
 
-  int currentColours[3];
-  getTideColours(currentTideValue, currentColours);
+  int *currentColours = getTideColours(currentTideValue);
   
   if((previousTideValue < 0 && currentTideValue >= 0) || (previousTideValue >= 0 && currentTideValue < 0)) {
     dimTransition(previousColours[0], previousColours[1], previousColours[2], currentColours[0], currentColours[1], currentColours[2]);
@@ -329,33 +382,11 @@ void applyCurrentTide2(int previousTideValue, int currentTideValue) {
   }
 }
 
-void getTideColours (int tideValue, int *colours) {
-
-  if(tideValue >= 0) {
-
-    //Red
-    colours[0] = map(tideValue, 0, tideMax, highTideMinColorRed, highTideMaxColorRed);
-  
-    //Green
-    colours[1] = map(tideValue, 0, tideMax, highTideMinColorGreen, highTideMaxColorGreen);
-  
-    //Blue
-    colours[2] = map(tideValue, 0, tideMax, highTideMinColorBlue, highTideMaxColorBlue);
- 
-
-  } else {
-
-    //Red
-    colours[0] = map(tideValue, tideMin, 0, lowTideMaxColorRed, lowTideMinColorRed);
-  
-    //Green
-    colours[1] = map(tideValue, tideMin, 0, lowTideMaxColorGreen, lowTideMinColorGreen);
-  
-    //Blue
-    colours[2] = map(tideValue, tideMin, 0, lowTideMaxColorBlue, lowTideMinColorBlue);
- 
-  }
-
+void blink(int aRed, int aGreen, int aBlue, int bRed, int bGreen, int bBlue, int delayPeriod) {
+  writeColourToLED(aRed, aGreen, aBlue);
+  delay(delayPeriod);
+  writeColourToLED(bRed, bGreen, bBlue);
+  delay(delayPeriod);
 }
 
 void transition(int cRed, int cGreen, int cBlue, int tRed, int tGreen, int tBlue) {
@@ -411,8 +442,4 @@ void dimTransition(int cRed, int cGreen, int cBlue, int tRed, int tGreen, int tB
   transition(0, 0, 0, tRed, tGreen, tBlue);
 }
 
-void writeColourToLED(int red, int green, int blue) {
-  analogWrite(redLED, red);
-  analogWrite(greenLED, green);
-  analogWrite(blueLED, blue);
-}
+
