@@ -94,14 +94,14 @@ void loop() {
   updateTideConnector();
   */
   //Run the online version
-  //getTideLevel();
+  getTideLevel(tideLink);
 
   //Remove coment to run test
   //tideTest(); 
   
  //delay(10* 60 * 1000);
 
-  tideTest2();
+  //tideTest2();
 
 
 }
@@ -151,17 +151,18 @@ int getTideLevel(char * link) {
     return errorTide;
   }
 
-  const size_t bufferSize = JSON_OBJECT_SIZE(2) + JSON_OBJECT_SIZE(3) + JSON_OBJECT_SIZE(5) + JSON_OBJECT_SIZE(8) + 370;
-  DynamicJsonBuffer jsonBuffer(bufferSize);
-  JsonObject& root = jsonBuffer.parseObject(http.getString());
+  const size_t bufferSize = JSON_OBJECT_SIZE(2) + JSON_OBJECT_SIZE(3) + JSON_OBJECT_SIZE(5) + JSON_OBJECT_SIZE(8) + 1370;
+  DynamicJsonDocument doc(bufferSize);
+  DeserializationError error = deserializeJson(doc,http.getString());
 
-  if(!root.success()) {
-    Serial.println("parseObject() failed");
+  if(error) {
+    Serial.print("deserializeJson() failed with code");
+    Serial.println(error.c_str());
     http.end();
     return errorTide;
   }
 
-  String currentValueTideString = root["items"][0]["value"];
+  String currentValueTideString = doc["items"][0]["value"];
   double newCurrentValueTide = currentValueTideString.toDouble()*100;
   http.end();
   return newCurrentValueTide;
@@ -485,5 +486,3 @@ void dimTransition(int cRed, int cGreen, int cBlue, int tRed, int tGreen, int tB
   transition(cRed, cGreen, cBlue, 0, 0, 0);
   transition(0, 0, 0, tRed, tGreen, tBlue);
 }
-
-
