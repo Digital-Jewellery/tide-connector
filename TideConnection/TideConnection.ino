@@ -8,15 +8,21 @@
 #include <ArduinoJson.h>
 #include <WiFiManager.h>
 
+#include <Adafruit_NeoPixel.h>
+
+#define LED_PIN 12
+#define BRIGHTNESS 50
+
+Adafruit_NeoPixel strip(1, LED_PIN, NEO_GRBW + NEO_KHZ800);
 WiFiManager wifiManager;
 
-const int redLED = 14;    //D4
-const int greenLED = 12;  //D6
-const int blueLED = 13;   //D7
+//const int redLED = 14;    //D4
+//const int greenLED = 12;  //D6
+//const int blueLED = 13;   //D7
 
 //If cathode led invert values
-const int maxLEDValue = 0;           
-const int minLEDValue = 1023;
+const int maxLEDValue = 255;//0;           
+const int minLEDValue = 0;//1023;
 
 const int led1 = 12; //green
 const int led2 = 14; //red
@@ -64,9 +70,13 @@ void setup() {
 
   Serial.begin(9600);
 
-  pinMode(led1, OUTPUT);
-  pinMode(led2, OUTPUT);
-  pinMode(led3, OUTPUT);
+  strip.begin();           // INITIALIZE NeoPixel strip object (REQUIRED)
+  strip.show();            // Turn OFF all pixels ASAP
+  strip.setBrightness(50); // Set BRIGHTNESS to about 1/5 (max = 255)
+  
+  //pinMode(led1, OUTPUT);
+  //pinMode(led2, OUTPUT);
+  //pinMode(led3, OUTPUT);
 
   randomSeed(analogRead(0));
 
@@ -80,21 +90,21 @@ void setup() {
     delay(1000);
   };
 
-  writeColourToLED(minLEDValue, minLEDValue, minLEDValue);
-
-  startTideConnector();
+  writeColourToLED(255, 0, 0);
+	startTideConnector();
 }
 
 void loop() {
 
-  /*
-  server.handleClient();
-  MDNS.update();
-
-  updateTideConnector();
-  */
+  
+  //server.handleClient();
+  //MDNS.update();
+	updateTideConnector();
+  
   //Run the online version
-  getTideLevel(tideLink);
+  //getTideLevel(tideLink);
+  
+	//updateTideConnector();
 
   //Remove coment to run test
   //tideTest(); 
@@ -107,14 +117,19 @@ void loop() {
 }
 
 void startTideConnector() {
+  Serial.println("get tide");
   int newTideValue = getTideLevel(tideLink);
+    Serial.println("got tide?");
   //If there is a error, it keeps retrying
   while(newTideValue == -9999) {
+    Serial.println("no");
     blink(minLEDValue, minLEDValue, minLEDValue, maxLEDValue, maxLEDValue, minLEDValue, 200);
     newTideValue = getTideLevel(tideLink);
     delay(1000);
   }
 
+  Serial.println("yes");
+  
   updateTideBoundries(newTideValue);
 
   int *colours = getTideColours(newTideValue);
@@ -163,6 +178,8 @@ int getTideLevel(char * link) {
   }
 
   String currentValueTideString = doc["items"][0]["value"];
+  Serial.print("current tide value: ");
+  Serial.println(currentValueTideString);
   double newCurrentValueTide = currentValueTideString.toDouble()*100;
   http.end();
   return newCurrentValueTide;
@@ -201,9 +218,11 @@ int * getTideColours (int tideValue) {
 }
 
 void writeColourToLED(int red, int green, int blue) {
-  analogWrite(redLED, red);
-  analogWrite(greenLED, green);
-  analogWrite(blueLED, blue);
+  //analogWrite(redLED, red);
+  //analogWrite(greenLED, green);
+  //analogWrite(blueLED, blue);
+  strip.setPixelColor(0, strip.Color(red, green, blue, 255));
+  strip.show();
 }
 
 void setState(int newTideValue, int red, int green, int blue) {
