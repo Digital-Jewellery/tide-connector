@@ -221,6 +221,15 @@ void writeColourToLED(int red, int green, int blue) {
   //analogWrite(redLED, red);
   //analogWrite(greenLED, green);
   //analogWrite(blueLED, blue);
+  
+  Serial.print("r:");
+  Serial.print(red);
+  Serial.print(" g:");
+  Serial.print(green);
+  Serial.print(" b:");
+  Serial.print(blue);
+  Serial.println();
+		
   strip.setPixelColor(0, strip.Color(red, green, blue, 255));
   strip.show();
 }
