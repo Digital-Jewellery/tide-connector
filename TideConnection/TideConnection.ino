@@ -95,10 +95,30 @@ void setup() {
 }
 
 void loop() {
-
   
-  //server.handleClient();
-  //MDNS.update();
+  //tideTest();
+
+  /*
+  for(int i = 0; i < 50; i++) {
+      Serial.print("brightness: ");
+     	Serial.println(i);
+  		strip.setPixelColor(0, strip.Color(0, 0, 255));
+     	strip.setBrightness(i); 
+  	 	strip.show();
+    	delay(100);
+  }
+  
+  for(int j = 50; j >= 0; j--) {
+    	Serial.print("brightness: ");
+     	Serial.println(j);
+  		strip.setPixelColor(0, strip.Color(0, 0, 255));
+    	strip.setBrightness(j); 
+  	 	strip.show();
+    	delay(100);
+  }
+  */
+  
+
 	updateTideConnector();
   
   //Run the online version
@@ -383,14 +403,17 @@ void tideTest2() {
 void tideTest()  {
 
   for(int i = tideMin; i < tideMax; i+=5) {
-   applyCurrentTide(i);
-   delay(100);
+   int *colours = getTideColours(i);
+   applyCurrentTide2(i-5, i);
+   delay(2000);
  }
 
  for(int i = tideMax; i > tideMin; i-=5) {
-   applyCurrentTide(i);
-   delay(100);
+   int *colours = getTideColours(i);
+   applyCurrentTide2(i+5, i);
+   delay(2000);
  }
+  
 }
 
 void updateTideConnector() {
@@ -445,13 +468,37 @@ int getTideValue() {
 void applyCurrentTide2(int previousTideValue, int currentTideValue) {
 
   int *previousColours = getTideColours(previousTideValue);
-
+  
+  Serial.print("previous colour");
+  Serial.print(previousColours[0]);
+   Serial.print(" ");
+  Serial.print(previousColours[1]);
+   Serial.print(" ");
+	Serial.println(previousColours[2]);
+  
+  int p1 = previousColours[0];
+  int p2 = previousColours[1];
+  int p3 = previousColours[2];
+  
   int *currentColours = getTideColours(currentTideValue);
+  Serial.print("current colour");
+  Serial.print(currentColours[0]);
+   Serial.print(" ");
+  Serial.print(currentColours[1]);
+   Serial.print(" ");
+	Serial.println(currentColours[2]);
+  
+  int c1 = currentColours[0];
+  int c2 = currentColours[1];
+  int c3 = currentColours[2];
+  
   
   if((previousTideValue < 0 && currentTideValue >= 0) || (previousTideValue >= 0 && currentTideValue < 0)) {
-    dimTransition(previousColours[0], previousColours[1], previousColours[2], currentColours[0], currentColours[1], currentColours[2]);
+    //dimTransition(previousColours[0], previousColours[1], previousColours[2], currentColours[0], currentColours[1], currentColours[2]);
+    dimTransition(p1, p2, p3, c1, c2, c3);
   } else {
-    transition(previousColours[0], previousColours[1], previousColours[2], currentColours[0], currentColours[1], currentColours[2]);
+    //transition(previousColours[0], previousColours[1], previousColours[2], currentColours[0], currentColours[1], currentColours[2]);
+    transition(p1, p2, p3, c1, c2, c3);
   }
 }
 
@@ -463,6 +510,16 @@ void blink(int aRed, int aGreen, int aBlue, int bRed, int bGreen, int bBlue, int
 }
 
 void transition(int cRed, int cGreen, int cBlue, int tRed, int tGreen, int tBlue) {
+  
+  
+  Serial.print(cRed);
+  Serial.print(cGreen);
+  Serial.print(cBlue);
+  Serial.println(" ");
+  Serial.print(tRed);
+  Serial.print(tGreen);
+  Serial.print(tBlue);
+  Serial.println(" ");
 
   int redVariance = tRed - cRed;
   int greenVariance = tGreen - cGreen;
@@ -487,6 +544,7 @@ void transition(int cRed, int cGreen, int cBlue, int tRed, int tGreen, int tBlue
     if(cGreen != tGreen){ if(greenVariance > 0) cGreen++; else if(greenVariance < 0) cGreen--; }
     if(cBlue != tBlue){ if(blueVariance > 0) cBlue++; else if(blueVariance < 0) cBlue--; }
 
+      Serial.print("test 2");
 /*
     Serial.print(cRed);
      Serial.print("-");
@@ -507,10 +565,12 @@ void transition(int cRed, int cGreen, int cBlue, int tRed, int tGreen, int tBlue
     writeColourToLED(cRed, cGreen, cBlue);
     delay(3000/maxVariance);
   }
+  Serial.print("test 1");
   Serial.println();
 }
 
 void dimTransition(int cRed, int cGreen, int cBlue, int tRed, int tGreen, int tBlue){
+  Serial.println("dimTransition");
   transition(cRed, cGreen, cBlue, 0, 0, 0);
   transition(0, 0, 0, tRed, tGreen, tBlue);
 }
