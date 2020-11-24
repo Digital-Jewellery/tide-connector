@@ -54,7 +54,7 @@ const int zeroTideColour[3] = {minLEDValue, maxLEDValue, minLEDValue};
 const int lowTideColour[3] = {maxLEDValue, maxLEDValue, minLEDValue};
 
 int previousTideValue = 0;
-int currentTideValue = 315;
+int currentTideValue = -9999;
 int currentRed = 255;
 int currentGreen = 0;
 int currentBlue = 0;
@@ -153,9 +153,13 @@ void startTideConnector() {
   updateTideBoundries(newTideValue);
 
   int *colours = getTideColours(newTideValue);
-  writeColourToLED(colours[0], colours[1], colours[2]);
-
-  setState(newTideValue, colours[0], colours[1], colours[2]);
+  int color1 = colours[0];
+  int color2 = colours[1];
+  int color3 = colours[2];
+  
+	writeColourToLED(color1, color2, color3);
+  
+  setState(newTideValue, color1, color2, color3);
 }
 
 /**
@@ -256,7 +260,13 @@ void writeColourToLED(int red, int green, int blue) {
 
 void setState(int newTideValue, int red, int green, int blue) {
   lastUpdate = millis();
-  previousTideValue = currentTideValue;
+  
+  if(currentTideValue == -9999) {
+    previousTideValue = newTideValue;
+  } else {
+  	previousTideValue = currentTideValue;
+  }
+  
   currentTideValue = newTideValue;
   currentRed = red;
   currentGreen = green;
@@ -428,14 +438,21 @@ void updateTideConnector() {
 
     int *colours = getTideColours(newTideValue);
    
+    int color1 = colours[0];
+    int color2 = colours[1];
+    int color3 = colours[3];
+     
+     
     applyCurrentTide2(previousTideValue, newTideValue);
 
-    setState(newTideValue, colours[0], colours[1], colours[2]);
+    setState(newTideValue, color1, color2, color3);
 
 
     //getTideLevel();
     //applyCurrentTide2(previousTideValue, currentTideValue);
-  }
+  } /* else {
+  	waving();  
+  }*/
 }
 
 int getTideValue() {
@@ -500,6 +517,7 @@ void applyCurrentTide2(int previousTideValue, int currentTideValue) {
     //transition(previousColours[0], previousColours[1], previousColours[2], currentColours[0], currentColours[1], currentColours[2]);
     transition(p1, p2, p3, c1, c2, c3);
   }
+  
 }
 
 void blink(int aRed, int aGreen, int aBlue, int bRed, int bGreen, int bBlue, int delayPeriod) {
@@ -510,7 +528,6 @@ void blink(int aRed, int aGreen, int aBlue, int bRed, int bGreen, int bBlue, int
 }
 
 void transition(int cRed, int cGreen, int cBlue, int tRed, int tGreen, int tBlue) {
-  
   
   Serial.print(cRed);
   Serial.print(cGreen);
@@ -574,3 +591,90 @@ void dimTransition(int cRed, int cGreen, int cBlue, int tRed, int tGreen, int tB
   transition(cRed, cGreen, cBlue, 0, 0, 0);
   transition(0, 0, 0, tRed, tGreen, tBlue);
 }
+
+
+void waving() {
+
+  
+  /*
+  Serial.println("going down");
+  for(int i = 50; i > 0; i--) {
+    Serial.println(i);
+ 		strip.setBrightness(i);
+    strip.show();      
+    delay(100);
+  }
+  
+  Serial.println("going up");
+  for(int j = 1; j < 50; j++) {
+    Serial.println(j);
+  	strip.setBrightness(j);
+    strip.show();      
+    delay(100);
+  }*/
+  
+    /*
+  Serial.println("going down");
+  for(int i = 50; i > 0; i--) {
+    int t1 = bellCurve(i, 3);
+    Serial.println(t1);
+ 		strip.setBrightness(t1 * 50);
+    strip.show();      
+    delay(100);
+  }
+  
+  Serial.println("going up");
+  for(int j = 1; j < 50; j++) {
+    int t2 = bellCurve(j, 3);
+    Serial.println(t2);
+  	strip.setBrightness(t2 * 50);
+    strip.show();      
+    delay(100);
+  }*/
+  
+
+      
+  Serial.println("going down");
+  for(float i = 0.5; i > 0; i-=0.01) {
+    Serial.println(i);
+    float t1 = arch(i);
+    float t12 = map(t1 * 100, 0, 100, 1, 50);
+    Serial.println(t1);
+    Serial.println(t12);
+ 		strip.setBrightness(t12);
+    strip.show();      
+    delay(100);
+  }
+  /*
+  Serial.println("going up");
+  for(int j = 1; j < 50; j++) {
+    int t2 = bellCurve(j, 3);
+    Serial.println(t2);
+  	strip.setBrightness(t2 * 50);
+    strip.show();      
+    delay(100);
+  }
+  */
+
+}
+
+float smoothStart(int t, int n) {
+  return pow(t , n);
+}
+
+float smoothStop(int t, int n) {
+  
+  float temp = 1 - t;
+	return 1 - pow(temp, n);
+}
+
+float bellCurve(int t, int n) {
+	return smoothStart(t, n) * smoothStop(t, n);
+}
+
+float arch(int t) {
+	return t * (1 - t); 
+}
+
+
+
