@@ -98,48 +98,14 @@ void loop() {
   
   //tideTest();
 
-  /*
-  for(int i = 0; i < 50; i++) {
-      Serial.print("brightness: ");
-     	Serial.println(i);
-  		strip.setPixelColor(0, strip.Color(0, 0, 255));
-     	strip.setBrightness(i); 
-  	 	strip.show();
-    	delay(100);
-  }
-  
-  for(int j = 50; j >= 0; j--) {
-    	Serial.print("brightness: ");
-     	Serial.println(j);
-  		strip.setPixelColor(0, strip.Color(0, 0, 255));
-    	strip.setBrightness(j); 
-  	 	strip.show();
-    	delay(100);
-  }
-  */
-  
-
 	updateTideConnector();
-  
-  //Run the online version
-  //getTideLevel(tideLink);
-  
-	//updateTideConnector();
-
-  //Remove coment to run test
-  //tideTest(); 
-  
- //delay(10* 60 * 1000);
-
-  //tideTest2();
-
-
+ 
 }
 
 void startTideConnector() {
   Serial.println("get tide");
   int newTideValue = getTideLevel(tideLink);
-    Serial.println("got tide?");
+  Serial.println("got tide?");
   //If there is a error, it keeps retrying
   while(newTideValue == -9999) {
     Serial.println("no");
@@ -242,10 +208,6 @@ int * getTideColours (int tideValue) {
 }
 
 void writeColourToLED(int red, int green, int blue) {
-  //analogWrite(redLED, red);
-  //analogWrite(greenLED, green);
-  //analogWrite(blueLED, blue);
-  
   Serial.print("r:");
   Serial.print(red);
   Serial.print(" g:");
@@ -285,114 +247,7 @@ void updateTideBoundries(int tideValue) {
 
 }
 
-void applyCurrentTide(int tideValue) {
-  Serial.print("CurrentTide: ");
-  Serial.print(tideValue);
-  Serial.println();
-
-  int red;
-  int green;
-  int blue;
-
-  if(tideValue >= 0) {
-
-    //Red
-    red = map(tideValue, 0, tideMax, highTideMinColorRed, highTideMaxColorRed);
-      Serial.print("map: ");
-      Serial.print(tideValue);
-      Serial.print(" ");
-      Serial.print(" 0, ");
-      Serial.print(tideMax);
-      Serial.print(" , ");
-      Serial.print(highTideMinColorRed);
-      Serial.print(" , ");
-      Serial.print(highTideMaxColorRed);
-      Serial.println();
-  
-    //Green
-    green = map(tideValue, 0, tideMax, highTideMinColorGreen, highTideMaxColorGreen);
-      Serial.print("map: ");
-      Serial.print(tideValue);
-      Serial.print(" 0, ");
-      Serial.print(tideMax);
-      Serial.print(" , ");
-      Serial.print(highTideMinColorGreen);
-      Serial.print(" , ");
-      Serial.print(highTideMaxColorGreen);
-      
-      Serial.println();
-  
-    //Blue
-    blue = map(tideValue, 0, tideMax, highTideMinColorBlue, highTideMaxColorBlue);
-      Serial.print("map: ");
-      Serial.print(tideValue);
-      Serial.print(" ");
-      Serial.print(" 0, ");
-      Serial.print(tideMax);
-      Serial.print(" , ");
-      Serial.print(highTideMinColorBlue);
-      Serial.print(" , ");
-      Serial.print(highTideMaxColorBlue);
-      Serial.println();
-
-  } else {
-    
-    //Red
-    red = map(tideValue, tideMin, 0, lowTideMaxColorRed, lowTideMinColorRed);
-      Serial.print("map: ");
-      Serial.print(tideValue);
-      Serial.print(" ");
-      Serial.print(" 0, ");
-      Serial.print(tideMin);
-      Serial.print(" , ");
-      Serial.print(lowTideMaxColorRed);
-      Serial.print(" , ");
-      Serial.print(lowTideMinColorRed);
-      Serial.println();
-  
-    //Green
-    green = map(tideValue, tideMin, 0, lowTideMaxColorGreen, lowTideMinColorGreen);
-      Serial.print("map: ");
-      Serial.print(tideValue);
-      Serial.print(" 0, ");
-      Serial.print(tideMin);
-      Serial.print(" , ");
-      Serial.print(lowTideMaxColorGreen);
-      Serial.print(" , ");
-      Serial.print(lowTideMinColorGreen);
-      
-      Serial.println();
-  
-    //Blue
-    blue = map(tideValue, tideMin, 0, lowTideMaxColorBlue, lowTideMinColorBlue);
-      Serial.print("map: ");
-      Serial.print(tideValue);
-      Serial.print(" 0, ");
-      Serial.print(tideMin);
-      Serial.print(" , ");
-      Serial.print(lowTideMaxColorBlue);
-      Serial.print(" , ");
-      Serial.print(lowTideMinColorBlue);
-      Serial.println();
- 
-  }
-  
-  analogWrite(led1, green); // green
-  analogWrite(led2, red); //red
-  analogWrite(led3, blue); // blue
-  
-  
-  Serial.print("r:");
-  Serial.print(red);
-  Serial.print(" g:");
-  Serial.print(green);
-  Serial.print(" b:");
-  Serial.print(blue);
-  Serial.println();
-
-}
-
-void tideTest2() {
+void tideTest() {
 
   for(int i = tideMin; i < tideMax; i++) {
     Serial.println(i);
@@ -410,21 +265,6 @@ void tideTest2() {
 
 }
 
-void tideTest()  {
-
-  for(int i = tideMin; i < tideMax; i+=5) {
-   int *colours = getTideColours(i);
-   applyCurrentTide2(i-5, i);
-   delay(2000);
- }
-
- for(int i = tideMax; i > tideMin; i-=5) {
-   int *colours = getTideColours(i);
-   applyCurrentTide2(i+5, i);
-   delay(2000);
- }
-  
-}
 
 void updateTideConnector() {
    if(millis()-lastUpdate >= updateInterval) {
@@ -442,79 +282,30 @@ void updateTideConnector() {
     int color2 = colours[1];
     int color3 = colours[3];
      
-     
     applyCurrentTide2(previousTideValue, newTideValue);
 
     setState(newTideValue, color1, color2, color3);
 
-
-    //getTideLevel();
-    //applyCurrentTide2(previousTideValue, currentTideValue);
   } /* else {
   	waving();  
   }*/
 }
 
-int getTideValue() {
-  if(lastUpdate == 0) {
-    currentTideValue =  random(tideMin, tideMax+1);
-    tideDirection = random(0,2);
-  } else {
-    int variance = random(5, 15);
-    previousTideValue = currentTideValue;
-    if(tideDirection == 0) {
-      if(currentTideValue - variance < tideMin) {
-        currentTideValue = tideMin;
-        tideDirection = 1;
-      } else 
-        currentTideValue -= variance; 
-    } else if(tideDirection == 1) {
-      if(currentTideValue + variance > tideMax) {
-        currentTideValue = tideMax;
-        tideDirection = 0;
-      } else 
-        currentTideValue += variance; 
-    }
-  }
-  lastUpdate = millis();
-  Serial.print("Current Tide Value");
-  Serial.println(currentTideValue);
-  return currentTideValue;
-}
-
 void applyCurrentTide2(int previousTideValue, int currentTideValue) {
 
   int *previousColours = getTideColours(previousTideValue);
-  
-  Serial.print("previous colour");
-  Serial.print(previousColours[0]);
-   Serial.print(" ");
-  Serial.print(previousColours[1]);
-   Serial.print(" ");
-	Serial.println(previousColours[2]);
-  
   int p1 = previousColours[0];
   int p2 = previousColours[1];
   int p3 = previousColours[2];
   
   int *currentColours = getTideColours(currentTideValue);
-  Serial.print("current colour");
-  Serial.print(currentColours[0]);
-   Serial.print(" ");
-  Serial.print(currentColours[1]);
-   Serial.print(" ");
-	Serial.println(currentColours[2]);
-  
   int c1 = currentColours[0];
   int c2 = currentColours[1];
   int c3 = currentColours[2];
   
-  
   if((previousTideValue < 0 && currentTideValue >= 0) || (previousTideValue >= 0 && currentTideValue < 0)) {
-    //dimTransition(previousColours[0], previousColours[1], previousColours[2], currentColours[0], currentColours[1], currentColours[2]);
     dimTransition(p1, p2, p3, c1, c2, c3);
   } else {
-    //transition(previousColours[0], previousColours[1], previousColours[2], currentColours[0], currentColours[1], currentColours[2]);
     transition(p1, p2, p3, c1, c2, c3);
   }
   
@@ -529,15 +320,6 @@ void blink(int aRed, int aGreen, int aBlue, int bRed, int bGreen, int bBlue, int
 
 void transition(int cRed, int cGreen, int cBlue, int tRed, int tGreen, int tBlue) {
   
-  Serial.print(cRed);
-  Serial.print(cGreen);
-  Serial.print(cBlue);
-  Serial.println(" ");
-  Serial.print(tRed);
-  Serial.print(tGreen);
-  Serial.print(tBlue);
-  Serial.println(" ");
-
   int redVariance = tRed - cRed;
   int greenVariance = tGreen - cGreen;
   int blueVariance = tBlue - cBlue;
@@ -561,33 +343,13 @@ void transition(int cRed, int cGreen, int cBlue, int tRed, int tGreen, int tBlue
     if(cGreen != tGreen){ if(greenVariance > 0) cGreen++; else if(greenVariance < 0) cGreen--; }
     if(cBlue != tBlue){ if(blueVariance > 0) cBlue++; else if(blueVariance < 0) cBlue--; }
 
-      Serial.print("test 2");
-/*
-    Serial.print(cRed);
-     Serial.print("-");
-    Serial.print(tRed);
-    Serial.print(" ");
-    Serial.print(cGreen);
-    Serial.print("-");
-    Serial.print(tGreen);
-    Serial.print(" ");
-    Serial.print(cBlue);
-    Serial.print("-");
-    Serial.println(tBlue);
-    */
-    Serial.print(3000/maxVariance);
-    Serial.print(" ");
-
-    
     writeColourToLED(cRed, cGreen, cBlue);
     delay(3000/maxVariance);
   }
-  Serial.print("test 1");
-  Serial.println();
+  
 }
 
 void dimTransition(int cRed, int cGreen, int cBlue, int tRed, int tGreen, int tBlue){
-  Serial.println("dimTransition");
   transition(cRed, cGreen, cBlue, 0, 0, 0);
   transition(0, 0, 0, tRed, tGreen, tBlue);
 }
@@ -675,6 +437,3 @@ float bellCurve(int t, int n) {
 float arch(int t) {
 	return t * (1 - t); 
 }
-
-
-
